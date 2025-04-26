@@ -1,0 +1,175 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flappy Bird Oyunu</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #87CEEB;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      border: 2px solid #333;
+      background-color: #FAFAD2;
+    }
+    #score {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    #restartBtn {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      display: none;
+    }
+    #restartBtn:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Puan: 0</div>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <button id="restartBtn">Yeniden Başla</button>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let score = 0;
+    let gameOver = false;
+    const gravity = 0.5;
+    const jump = -10;
+    const pipeGap = 150;
+    const pipeWidth = 30;
+    let pipes = [];
+    let frameCount = 0;
+
+    const bird = {
+      x: 100,
+      y: canvas.height / 2,
+      radius: 15,
+      velocity: 0
+    };
+
+    function drawBird() {
+      ctx.beginPath();
+      ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+      ctx.fillStyle = 'yellow';
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.stroke();
+    }
+
+    function updateBird() {
+      bird.velocity += gravity;
+      bird.y += bird.velocity;
+
+      if (bird.y + bird.radius > canvas.height || bird.y - bird.radius < 0) {
+        gameOver = true;
+      }
+    }
+
+    function drawPipes() {
+      pipes.forEach(pipe => {
+        ctx.fillStyle = 'green';
+        // Üst boru
+        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+        // Alt boru
+        ctx.fillRect(pipe.x, pipe.top + pipeGap, pipeWidth, canvas.height - pipe.top - pipeGap);
+      });
+    }
+
+    function updatePipes() {
+      if (frameCount % 90 === 0) {
+        const pipeHeight = Math.random() * (canvas.height - pipeGap - 200) + 100;
+        pipes.push({ x: canvas.width, top: pipeHeight });
+      }
+
+      pipes.forEach(pipe => {
+        pipe.x -= 2;
+
+        // Çarpışma kontrolü
+        if (
+          bird.x + bird.radius > pipe.x &&
+          bird.x - bird.radius < pipe.x + pipeWidth &&
+          (bird.y - bird.radius < pipe.top || bird.y + bird.radius > pipe.top + pipeGap)
+        ) {
+          gameOver = true;
+        }
+
+        // Puanlama
+        if (bird.x > pipe.x + pipeWidth && !pipe.passed) {
+          score++;
+          scoreDisplay.textContent = `Puan: ${score}`;
+          pipe.passed = true;
+        }
+      });
+
+      pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
+      frameCount++;
+    }
+
+    function gameLoop() {
+      if (gameOver) {
+        restartBtn.style.display = 'block';
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBird();
+      updateBird();
+      drawPipes();
+      updatePipes();
+      requestAnimationFrame(gameLoop);
+    }
+
+    canvas.addEventListener('click', () => {
+      if (!gameOver) {
+        bird.velocity = jump;
+      }
+    });
+
+    // Mobil cihazlar için dokunma desteği
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (!gameOver) {
+        bird.velocity = jump;
+      }
+    });
+
+    function restartGame() {
+      score = 0;
+      bird.y = canvas.height / 2;
+      bird.velocity = 0;
+      pipes = [];
+      frameCount = 0;
+      gameOver = false;
+      scoreDisplay.textContent = `Puan: ${score}`;
+      restartBtn.style.display = 'none';
+      gameLoop();
+    }
+
+    restartBtn.addEventListener('click', restartGame);
+
+    // Oyunu başlat
+    gameLoop();
+  </script>
+</body>
+</html>
